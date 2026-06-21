@@ -1,42 +1,99 @@
-import { db } from "../models/database.js";
+import {
+  createListModel,
+  getListsByUserId,
+  deleteList,
+  updateList,
+} from "../models/lists.js";
+import { sendJson } from "../routes/route.js";
 
-// const createList = (req, data) => {};
+export const listService = {
+  createListModel(req, res) {
+    const { title, description, userId } = req.body;
 
-// const lisrService = {
-//   createList() {
-//     const { title, description, userId } = req.body;
-//     if (!userId)
-//       return sendJson(res, 400, { error: "userId обязателен в теле запроса" });
-//     if (!title)
-//       return sendJson(res, 400, { error: "Название списка обязательно" });
+    if (!userId) {
+      return sendJson(res, 400, { error: "userId обязателен в теле запроса" });
+    }
+    if (!title) {
+      return sendJson(res, 400, { error: "Название списка обязательно" });
+    }
 
-//     const newList = createListModel(title, description, userId);
-//     return sendJson(res, 201, { success: true, list: newList });
-//   },
-// };
+    try {
+      const newList = createListModel(title, description, userId);
+      return sendJson(res, 201, { success: true, list: newList });
+    } catch (error) {
+      console.error("Ошибка при работе с БД:", error);
+      return sendJson(res, 500, { error: "Внутренняя ошибка сервера" });
+    }
+  },
 
-// lisrService.createList({});
+  getLists(req, res) {
+    const { userId } = req.query;
 
-export const createList = (title, description, userId) => {
-  const stmt = db.prepare(
-    "INSERT INTO lists (title, description, user_id) VALUES (?, ?, ?) RETURNING *",
-  );
-  return stmt.get(title, description || "", userId);
-};
+    if (!userId) {
+      return sendJson(res, 400, {
+        error: "userId обязателен в параметрах запроса",
+      });
+    }
 
-export const getListsByUserId = (userId) => {
-  const stmt = db.prepare("SELECT * FROM lists WHERE user_id = ?");
-  return stmt.all(userId);
-};
+    try {
+      const lists = getListsByUserId(userId);
+      return sendJson(res, 200, { success: true, lists });
+    } catch (error) {
+      console.error("Ошибка при получении списков:", error);
+      return sendJson(res, 500, { error: "Внутренняя ошибка сервера" });
+    }
+  },
 
-export const deleteList = (listId) => {
-  const stmt = db.prepare("DELETE FROM lists WHERE id = ?");
-  return stmt.run(listId);
-};
+  removeList(req, res) {
+    const { id } = req.params;
 
-export const updateList = (listId, title, description) => {
-  const stmt = db.prepare(
-    "UPDATE lists SET title = ?, description = ? WHERE id = ? RETURNING *",
-  );
-  return stmt.get(title, description, listId);
+    if (!id) {
+      return sendJson(res, 400, { error: "ID списка обязателен для удаления" });
+    }
+
+    try {
+      const result = deleteList(id);
+
+      if (result.changes === 0) {
+        return sendJson(res, 404, { error: "Список с таким ID не найден" });
+      }
+
+      return sendJson(res, 200, {
+        success: true,
+        message: "Список успешно удален",
+      });
+    } catch (error) {
+      console.error("Ошибка при удалении списка:", error);
+      return sendJson(res, 500, { error: "Внутренняя ошибка сервера" });
+    }
+  },
+
+  updateListModel(req, res) {
+    const { id } = req.params;
+    const { title, description } = req.body;
+
+    if (!id) {
+      return sendJson(res, 400, {
+        error: "ID списка обязателен для обновления",
+      });
+    }
+    if (!title) {
+      return sendJson(res, 400, {
+        error: "Название списка обязательно для обновления",
+      });
+    }
+
+    try {
+      const updatedList = updateList(id, title, description || "");
+
+      if (!updatedList) {
+        return sendJson(res, 404, { error: "Список с таким ID не найден" });
+      }
+
+      return sendJson(res, 200, { success: true, list: updatedList });
+    } catch (error) {
+      console.error("Ошибка при обновлении списка:", error);
+      return sendJson(res, 500, { error: "Внутренняя ошибка сервера" });
+    }
+  },
 };

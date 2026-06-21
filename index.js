@@ -1,7 +1,9 @@
 import { createServer } from "node:http";
 import { handleRoutes } from "./routes/route.js";
+import Database from "better-sqlite3";
 
-const PORT = process.env.PORT || 3000;
+export const db = new Database("./database.db");
+const PORT = 5000;
 
 // Утилита для чтения JSON-данных от фронтенда
 const parseBody = (req) => {

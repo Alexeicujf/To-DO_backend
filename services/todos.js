@@ -1,49 +1,89 @@
-import { db } from "../models/database.js";
+import {
+  createTodoModel,
+  getTodosByUserId,
+  deleteTodo,
+  updateTodo,
+} from "../models/todos.js"; // Не забывайте расширение .js
+import { sendJson } from "../routes/route.js";
 
-export const createTodo = (title, description, list, userId) => {
-  const stmt = db.prepare(
-    "INSERT INTO todos (title, description, list, user_id) VALUES (?, ?, ?, ?) RETURNING *",
-  );
-  const row = stmt.get(title, description || "", list || null, userId);
-  return { ...row, check: row.check === 1 };
-};
+export const todosService = {
+  createTodoModel(req, res) {
+    const { title, description, list, userId } = req.body;
 
-export const getTodosByUserId = (userId) => {
-  const stmt = db.prepare("SELECT * FROM todos WHERE user_id = ?");
-  const rows = stmt.all(userId);
-  return rows.map((row) => ({
-    ...row,
-    check: row.check === 1,
-  }));
-};
+    if (!userId) {
+      return sendJson(res, 400, { error: "userId обязателен в теле запроса" }); // Исправлено на sendJson
+    }
+    if (!list) {
+      return sendJson(res, 400, { error: "Лист обязателен для задачи" });
+    }
+    if (!title) {
+      return sendJson(res, 400, { error: "Название задачи обязательно" });
+    }
 
-export const deleteTodo = (todoId) => {
-  const stmt = db.prepare("DELETE FROM todos WHERE id = ?");
-  return stmt.run(todoId);
-};
-
-export const updateTodo = (todoId, fields) => {
-  const currentTodo = db
-    .prepare("SELECT * FROM todos WHERE id = ?")
-    .get(todoId);
-  if (!currentTodo) return null;
-
-  const title = fields.title !== undefined ? fields.title : currentTodo.title;
-  const description =
-    fields.description !== undefined
-      ? fields.description
-      : currentTodo.description;
-  const list = fields.list !== undefined ? fields.list : currentTodo.list;
-
-  let check = currentTodo.check;
-  if (fields.check !== undefined) {
-    check = fields.check ? 1 : 0;
-  }
-
-  const stmt = db.prepare(
-    'UPDATE todos SET title = ?, description = ?, list = ?, "check" = ? WHERE id = ? RETURNING *',
-  );
-  const updatedRow = stmt.get(title, description, list, check, todoId);
-
-  return { ...updatedRow, check: updatedRow.check === 1 };
+    try {
+      const newTodo = createTodoModel(title, description, userId, list);
+      return sendJson(res, 201, { success: true, todo: newTodo });
+    } catch (error) {
+      console.error("Ошибка при работе с БД:", error);
+      return sendJson(res, 500, { error: "Внутренняя ошибка сервера" });
+    }
+  },
+  getTodos(req, res) {
+    const { userId } = req.query;
+    if (!userId) {
+      return sendJson(res, 400, {
+        error: "userId обязателен в параметрах запроса",
+      });
+    }
+    try {
+      const todos = getTodosByUserId(userId);
+      return sendJson(res, 200, { success: true, todos });
+    } catch (error) {
+      console.error("Ошиба при получении задачи", error);
+      return sendJson(res, 500, { error: "Ошибка сервера" });
+    }
+  },
+  removeTodo(req, res) {
+    const { id } = req.params;
+    if (!id) {
+      return sendJson(res, 400, { error: "Задачи ч таким id не найдено" });
+    }
+    try {
+      const isDelete = deleteTodo(id);
+      if (isDelete.changes === 0) {
+        return sendJson(res, 404, { error: "Задачи с таким id не найдено" });
+      }
+      return sendJson(res, 200, {
+        success: true,
+        message: "Задача успешно удален",
+      });
+    } catch (error) {
+      console.error("Ошибка удаления задачи");
+      return sendJson(res, 500, { error: "Ошибка сервера" });
+    }
+  },
+  updateTodoModel(req, res) {
+    const { id } = req.params;
+    const { title, description, check } = req.body;
+    if (!id) {
+      return sendJson(res, 400, {
+        error: "Id задачи обязательно для обновления",
+      });
+    }
+    if (!title) {
+      return sendJson(res, 400, {
+        error: "Название задачи обязательно для обновления",
+      });
+    }
+    try {
+      const updated = updateTodo(id, { title, description, check });
+      if (!updated) {
+        return sendJson(res, 404, { error: "Задачи с таким id не найден" });
+      }
+      return sendJson(res, 200, { success: true, todo: updated });
+    } catch (error) {
+      console.error("Ошибка при обновлении задачи", error);
+      return sendJson(res, 500, { error: "Ошибка сервера" });
+    }
+  },
 };

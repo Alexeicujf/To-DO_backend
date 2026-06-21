@@ -19,10 +19,10 @@
           "raw": "{\n  \"login\": \"testuser\",\n  \"password\": \"qwerty\"\n}"
         },
         "url": {
-          "raw": "http://localhost:3000/register",
+          "raw": "http://localhost:5000/register",
           "protocol": "http",
           "host": ["localhost"],
-          "port": "3000",
+          "port": "5000",
           "path": ["register"]
         }
       }
@@ -42,10 +42,10 @@
           "raw": "{\n  \"login\": \"testuser\",\n  \"password\": \"qwerty\"\n}"
         },
         "url": {
-          "raw": "http://localhost:3000/login",
+          "raw": "http://localhost:5000/login",
           "protocol": "http",
           "host": ["localhost"],
-          "port": "3000",
+          "port": "5000",
           "path": ["login"]
         }
       }
@@ -56,10 +56,10 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "http://localhost:3000/todos",
+          "raw": "http://localhost:5000/todos",
           "protocol": "http",
           "host": ["localhost"],
-          "port": "3000",
+          "port": "5000",
           "path": ["todos"]
         }
       }
