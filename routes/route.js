@@ -39,7 +39,7 @@ export const handleRoutes = async (req, res, url) => {
   if (req.method === "DELETE" && resource === "todos" && id) {
     return todosService.removeTodo(req, res);
   }
-  if (req.method === "PUT" && resource === "todos" && id) {
+  if (req.method === "PATCH" && resource === "todos" && id) {
     return todosService.updateTodoModel(req, res);
   }
 

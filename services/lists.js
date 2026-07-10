@@ -27,7 +27,7 @@ export const listService = {
   },
 
   getLists(req, res) {
-    const { userId } = req.query;
+    const userId = req.query.userId || req.headers["userid"];
 
     if (!userId) {
       return sendJson(res, 400, {

@@ -3,7 +3,7 @@ import {
   getTodosByUserId,
   deleteTodo,
   updateTodo,
-} from "../models/todos.js"; // Не забывайте расширение .js
+} from "../models/todos.js";
 import { sendJson } from "../routes/route.js";
 
 export const todosService = {
@@ -11,7 +11,7 @@ export const todosService = {
     const { title, description, list, userId } = req.body;
 
     if (!userId) {
-      return sendJson(res, 400, { error: "userId обязателен в теле запроса" }); // Исправлено на sendJson
+      return sendJson(res, 400, { error: "userId обязателен в теле запроса" });
     }
     if (!list) {
       return sendJson(res, 400, { error: "Лист обязателен для задачи" });
@@ -21,7 +21,7 @@ export const todosService = {
     }
 
     try {
-      const newTodo = createTodoModel(title, description, userId, list);
+      const newTodo = createTodoModel(title, description, list, userId);
       return sendJson(res, 201, { success: true, todo: newTodo });
     } catch (error) {
       console.error("Ошибка при работе с БД:", error);

@@ -3,9 +3,8 @@ import { handleRoutes } from "./routes/route.js";
 import Database from "better-sqlite3";
 
 export const db = new Database("./database.db");
-const PORT = 5000;
+const PORT = process.env.PORT || 5001;
 
-// Утилита для чтения JSON-данных от фронтенда
 const parseBody = (req) => {
   return new Promise((resolve) => {
     let body = "";
@@ -22,18 +21,17 @@ const parseBody = (req) => {
 };
 
 const server = createServer(async (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", "http://localhost:5173");
+  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
   res.setHeader(
     "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS",
+    "GET, POST, PUT, DELETE, PATCH, OPTIONS",
   );
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-  // 2. Сразу отвечаем на предзапрос OPTIONS от CORS
   if (req.method === "OPTIONS") {
     res.writeHead(204);
     res.end();
-    return; // Дальше роуты выполнять не нужно, браузер просто проверял доступы
+    return;
   }
   await parseBody(req);
 

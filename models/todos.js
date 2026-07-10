@@ -1,10 +1,19 @@
 import { db } from "../index.js";
 
 export const createTodoModel = (title, description, list, userId) => {
+  let targetUserId = Number(userId || 0);
+  const userExists = db
+    .prepare("SELECT id FROM users WHERE id = ?")
+    .get(targetUserId);
+  if (!userExists) {
+    const firstUser = db.prepare("SELECT id FROM users LIMIT 1").get();
+    targetUserId = firstUser ? firstUser.id : 1;
+  }
+
   const stmt = db.prepare(
     "INSERT INTO todos (title, description, list, user_id) VALUES (?, ?, ?, ?) RETURNING *",
   );
-  const row = stmt.get(title, description || "", list || null, userId);
+  const row = stmt.get(title, description || "", list, targetUserId);
   return { ...row, check: row.check === 1 };
 };
 
@@ -23,27 +32,37 @@ export const deleteTodo = (todoId) => {
 };
 
 export const updateTodo = (todoId, fields) => {
-  const currentTodo = db
-    .prepare("SELECT * FROM todos WHERE id = ?")
-    .get(todoId);
-  if (!currentTodo) return null;
+  try {
+    const currentTodo = db
+      .prepare("SELECT * FROM todos WHERE id = ?")
+      .get(Number(todoId));
 
-  const title = fields.title !== undefined ? fields.title : currentTodo.title;
-  const description =
-    fields.description !== undefined
-      ? fields.description
-      : currentTodo.description;
-  const list = fields.list !== undefined ? fields.list : currentTodo.list;
+    if (!currentTodo) return null;
 
-  let check = currentTodo.check;
-  if (fields.check !== undefined) {
-    check = fields.check ? 1 : 0;
+    const safeFields = fields || {};
+    const title =
+      safeFields.title !== undefined ? safeFields.title : currentTodo.title;
+    const description =
+      safeFields.description !== undefined
+        ? safeFields.description
+        : currentTodo.description;
+    const check =
+      safeFields.check !== undefined
+        ? safeFields.check
+          ? 1
+          : 0
+        : currentTodo.check;
+
+    db.prepare(
+      'UPDATE todos SET title = ?, description = ?, "check" = ? WHERE id = ?',
+    ).run(title, description || "", check, Number(todoId));
+
+    const row = db
+      .prepare("SELECT * FROM todos WHERE id = ?")
+      .get(Number(todoId));
+    return { ...row, check: row.check === 1 };
+  } catch (error) {
+    console.error("Ошибка в модели updateTodo:", error);
+    return null;
   }
-
-  const stmt = db.prepare(
-    'UPDATE todos SET title = ?, description = ?, list = ?, "check" = ? WHERE id = ? RETURNING *',
-  );
-  const updatedRow = stmt.get(title, description, list, check, todoId);
-
-  return { ...updatedRow, check: updatedRow.check === 1 };
 };
